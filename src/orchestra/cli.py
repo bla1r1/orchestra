@@ -21,7 +21,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .agent import healthcheck, run_maintenance
-from .config import load_config
+from .config import bundled_config_root, default_config_root, load_config, user_config_root
 from .executor import Executor
 from .logging_setup import setup_logging
 from .models import Capability
@@ -31,7 +31,7 @@ from .state import CooldownStore
 
 
 def _config_root() -> Path:
-    return Path(os.environ.get("ORCHESTRA_CONFIG", Path.cwd() / "config"))
+    return default_config_root()
 
 
 def _parse_caps(raw: str) -> frozenset[Capability]:
@@ -143,6 +143,42 @@ async def _cmd_maint(args: argparse.Namespace, root: Path, field: str) -> int:
     return rc
 
 
+async def _cmd_init(args: argparse.Namespace, root: Path) -> int:
+    """Copy the bundled config to ~/.config/orchestra so `orchestra` works from
+    any directory and the user has an editable copy."""
+    import shutil
+
+    dst = user_config_root()
+    if (dst / "agents").is_dir() and not args.force:
+        print(f"config already exists at {dst} (use --force to overwrite)")
+        return 0
+    src = bundled_config_root()
+    dst.mkdir(parents=True, exist_ok=True)
+    for item in src.iterdir():
+        if item.name in {"state", "logs"}:
+            continue  # runtime dirs, not defaults
+        target = dst / item.name
+        if item.is_dir():
+            shutil.copytree(item, target, dirs_exist_ok=True)
+        else:
+            shutil.copy2(item, target)
+    print(f"config initialised at {dst}")
+    print("edit it with:  orchestra config --edit")
+    return 0
+
+
+async def _cmd_config(args: argparse.Namespace, root: Path) -> int:
+    """Show (or open) the active config so settings are easy to find and edit."""
+    print(f"active config: {root}")
+    for f in sorted(root.rglob("*.yml")):
+        print(f"  {f.relative_to(root)}")
+    if args.edit:
+        editor = os.environ.get("EDITOR", "nano")
+        proc = await asyncio.create_subprocess_exec(editor, str(root))
+        await proc.wait()
+    return 0
+
+
 async def _cmd_qc(args: argparse.Namespace, root: Path) -> int:
     """Quality-control scan: flag stubs/placeholders/hacks in a worker's output.
     Exit 1 if any are found so the orchestrator can reject and re-delegate."""
@@ -204,6 +240,14 @@ def _parser() -> argparse.ArgumentParser:
     qc.add_argument("paths", nargs="+", help="files or directories to scan")
     qc.add_argument("--json", action="store_true")
     qc.set_defaults(func=_cmd_qc)
+
+    ini = sub.add_parser("init", help="scaffold editable config in ~/.config/orchestra")
+    ini.add_argument("--force", action="store_true", help="overwrite an existing config")
+    ini.set_defaults(func=_cmd_init)
+
+    cfg = sub.add_parser("config", help="show or open the active config")
+    cfg.add_argument("--edit", action="store_true", help="open it in $EDITOR")
+    cfg.set_defaults(func=_cmd_config)
 
     ins = sub.add_parser("install", help="run agents' install commands")
     ins.add_argument("--agents", default=None, help="comma-separated (default: all)")

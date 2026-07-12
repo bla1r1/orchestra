@@ -96,6 +96,21 @@ async def test_run_maintenance_runs_command():
     assert not ok2
 
 
+def test_config_resolution_order(tmp_path, monkeypatch):
+    from orchestra.config import default_config_root
+    # 1. explicit env wins
+    monkeypatch.setenv("ORCHESTRA_CONFIG", str(tmp_path / "explicit"))
+    assert default_config_root() == tmp_path / "explicit"
+    # 2. no env + a user config that exists -> user dir
+    monkeypatch.delenv("ORCHESTRA_CONFIG")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    (tmp_path / "orchestra" / "agents").mkdir(parents=True)
+    assert default_config_root() == tmp_path / "orchestra"
+    # 3. no env + no user config -> bundled falls back (path ends with /config)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "empty"))
+    assert default_config_root().name == "config"
+
+
 def test_qc_scan_flags_stubs_and_passes_clean(tmp_path):
     from orchestra.quality import QualityConfig, scan
     cfg = QualityConfig.load(tmp_path)  # no quality.yml -> built-in defaults

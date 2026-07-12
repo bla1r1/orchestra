@@ -3,10 +3,35 @@ drop a file into config/agents/ and it becomes a routable agent."""
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+
+
+def bundled_config_root() -> Path:
+    """The config/ shipped with the source tree — used as the seed for `init`
+    and as the fallback when no user config exists."""
+    return Path(__file__).resolve().parents[2] / "config"
+
+
+def user_config_root() -> Path:
+    """Where a user's editable config lives (XDG): ~/.config/orchestra."""
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "orchestra"
+
+
+def default_config_root() -> Path:
+    """Resolution order: $ORCHESTRA_CONFIG → ~/.config/orchestra → bundled.
+    Makes the `orchestra` command work from any directory once `init` has run."""
+    env = os.environ.get("ORCHESTRA_CONFIG")
+    if env:
+        return Path(env)
+    user = user_config_root()
+    if (user / "agents").is_dir():
+        return user
+    return bundled_config_root()
 
 from .models import AgentSpec, Capability
 

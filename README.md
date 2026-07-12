@@ -12,10 +12,19 @@ timeout, and benches tripped agents with a persistent cooldown.
 ./install.sh
 ```
 
-Installs the `orchestra` CLI, links the skill into Claude Code
-(`~/.claude/skills/orchestrate`), and generates an `AGENTS.md` that codex /
-opencode / mimo read — so any of those CLIs can act as the conductor. Re-run
-after `git pull`; it's idempotent. (Bare CLI only: `pip install -e ".[dev]"`.)
+Installs the global `orchestra` command (via pipx if present, else pip),
+scaffolds an editable config in `~/.config/orchestra` (`orchestra init`), links
+the skill into Claude Code (`~/.claude/skills/orchestrate`), and generates an
+`AGENTS.md` that codex / opencode / mimo read — so any of those CLIs can act as
+the conductor. Re-run after `git pull`; it's idempotent.
+
+After install, `orchestra` works from any directory (config resolution:
+`$ORCHESTRA_CONFIG` → `~/.config/orchestra` → the bundled defaults):
+
+```bash
+orchestra config --edit    # find/open your settings
+orchestra config           # just print the active config dir + files
+```
 
 ## Configure — priority & "what agent for what"
 

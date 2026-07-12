@@ -5,8 +5,18 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
-# 1. the CLI (editable, so pulls take effect without reinstall)
-pip install -e "$REPO"
+# 1. the CLI (editable, so pulls take effect without reinstall). This puts the
+#    global `orchestra` command on PATH via the console-script entry point.
+#    Prefer pipx for an isolated global install; fall back to pip.
+if command -v pipx >/dev/null 2>&1; then
+    pipx install --force -e "$REPO"
+else
+    pip install -e "$REPO"
+fi
+
+# 1b. editable user config in ~/.config/orchestra so `orchestra` works anywhere
+#     without ORCHESTRA_CONFIG. Idempotent (won't clobber an existing config).
+orchestra init || true
 
 # 2. Claude Code skill  ->  ~/.claude/skills/orchestrate
 mkdir -p "$HOME/.claude/skills"
@@ -28,7 +38,7 @@ for dir in "$HOME/.codex" "$HOME/.config/opencode" "$HOME/.mimocode"; do
 done
 
 echo
-echo "Point tools at your config:  export ORCHESTRA_CONFIG=$REPO/config"
-echo "Edit routing:                $REPO/config/routing.yml"
-echo "Edit an agent's priority:    $REPO/config/agents/<name>.yml  (priority: lower = preferred)"
-echo "Check the effect (no quota): orchestra route --task-type refactoring"
+echo "The 'orchestra' command now works from any directory. Try:"
+echo "  orchestra config --edit          # open your settings (~/.config/orchestra)"
+echo "  orchestra route --task-type refactoring   # preview routing, no quota"
+echo "  orchestra agents                 # list agents, priorities, cooldowns"
