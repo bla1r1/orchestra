@@ -6,7 +6,7 @@ name: codex
 # ChatGPT"), no API key involved. Add `-C <dir>` (or set cwd:) to target a repo.
 command: ["codex", "exec", "--skip-git-repo-check", "-s", "workspace-write", "-m", "{model}", "{prompt}"]
 model: gpt-5.6-luna            # default; override with `orchestra run --model ...`
-capabilities: [coding, refactoring, testing, review, reasoning]
+capabilities: [coding, refactoring, testing, review, reasoning, architecture]
 priority: 10
 timeout: 900
 update: ["codex", "update"]

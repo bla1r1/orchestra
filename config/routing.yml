@@ -25,17 +25,17 @@ default_capability: coding
 spread: true
 
 task_types:
-  refactoring:        # large refactors -> Codex
+  refactoring:        # large refactors -> Codex / MiMo
     capabilities: [refactoring, coding]
-    chain: [codex, opencode]
+    chain: [codex, mimo, opencode]
 
   java:               # JVM implementation -> OpenCode
     capabilities: [coding]
     chain: [opencode, codex]
 
-  architecture:       # design alternatives -> Antigravity (replaced Gemini)
+  architecture:       # design alternatives -> Antigravity, also Codex / MiMo
     capabilities: [architecture, reasoning]
-    chain: [antigravity]
+    chain: [antigravity, codex, mimo]
 
   draft:              # fast first pass -> MiMo
     capabilities: [coding]
