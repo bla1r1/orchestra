@@ -51,6 +51,6 @@ task_types:
     capabilities: [documentation]
     chain: []
 
-  planning:
+  planning:           # delegated to a worker (opencode) — orchestrator only reviews
     capabilities: [planning]
-    chain: [antigravity, claude]
+    chain: [antigravity, opencode, claude]

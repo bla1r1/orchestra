@@ -19,10 +19,13 @@ def _compile(patterns: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
 
 
 def _classify(spec: AgentSpec, exit_code: int | None, text: str) -> Outcome:
-    if any(p.search(text) for p in _compile(spec.quota_patterns)):
-        return Outcome.quota
+    # A clean exit is success — do NOT scan the output for quota/error words, or a
+    # task *about* rate limiting/quotas would falsely trip fallback on its own
+    # (correct) answer. Quota/retry signals only matter on an actual failure.
     if exit_code == 0:
         return Outcome.success
+    if any(p.search(text) for p in _compile(spec.quota_patterns)):
+        return Outcome.quota
     if any(p.search(text) for p in _compile(spec.retryable_patterns)):
         return Outcome.retryable
     return Outcome.error

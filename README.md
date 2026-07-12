@@ -138,7 +138,7 @@ Checked on this machine (2026-07):
 | codex | ✅ 0.144.1 | ChatGPT subscription (no API key) | `codex exec --skip-git-repo-check -s workspace-write "…"` | **VERIFIED LIVE** via `orchestra run` — answered in 3.5s |
 | claude | ✅ 2.1.196 | `claude login` creds (NOT inherited from parent session) | `claude -p "…"` | OK from a normal terminal; 401 inside the Claude Desktop sandbox |
 | antigravity (`agy`) | ✅ 1.1.1 | own login | `agy -p --dangerously-skip-permissions --mode accept-edits "…"` | health OK. Replaced the Gemini CLI, inherits its architecture/planning routing role |
-| opencode | ✅ 1.17.18 | own provider login | `opencode run "…"` (absolute path, headless = no prompts) | health OK |
+| opencode | ✅ 1.17.18 | none — built-in `deepseek-v4-flash-free` / `big-pickle` | `opencode run -m … "…"` (absolute path, headless = no prompts) | **VERIFIED LIVE**, no login; also does planning |
 | mimo | ✅ 0.1.5 | none — built-in `mimo-auto` model | `mimo run "…"` (absolute path, headless = no prompts) | **VERIFIED LIVE**, answered a prompt with no login |
 | gemini | ❌ discontinued | — | — | removed (killed ~2026-06, superseded by Antigravity 2.0) |
 

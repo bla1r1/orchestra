@@ -17,10 +17,14 @@ def _spec(**kw) -> AgentSpec:
     return AgentSpec(**{**base, **kw})
 
 
-def test_classify_quota_beats_exit_code():
-    s = _spec(quota_patterns=("usage limit",))
-    assert _classify(s, 0, "hit your usage limit") is Outcome.quota
+def test_classify_success_ignores_output_text():
+    # clean exit is success even if the (topical) output mentions quota/limits —
+    # a task about rate limiting must not trip its own fallback
+    s = _spec(quota_patterns=("usage limit", "rate limit"))
+    assert _classify(s, 0, "here is how to add a rate limit") is Outcome.success
     assert _classify(s, 0, "all good") is Outcome.success
+    # quota only counts on an actual failure
+    assert _classify(s, 1, "you hit your usage limit") is Outcome.quota
     assert _classify(s, 1, "boom") is Outcome.error
 
 
