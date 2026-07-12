@@ -93,27 +93,42 @@ Read all outputs, then YOU synthesise/critique — the engine does not auto-pick
 4. Reject and re-delegate with the specific defects named (same agent, or a
    stronger one). Re-run both gates. Accept only when both pass.
 
+## Spread the load — don't drain one agent
+
+Each worker has its own subscription limit. Do NOT funnel every unit to your
+top-priority agent until its quota dies. **Rotate across the capable agents** so
+each does a share and every limit lasts. Check `orchestra agents` for who is
+fresh vs cooling down, and vary `--prefer` per unit to cycle through them
+(codex → mimo → opencode → …). Save the strongest/scarcest agent for the units
+that truly need it; give routine units to whoever is fresh.
+
 ## Handing off an unfinished task (don't restart from zero)
 
-Normal path: delegate a unit to one agent, it finishes, you QC it, you move to
-the next unit. But if an agent **runs out mid-task** (hits its length/quota limit,
-stops half-done, or leaves it incomplete), do NOT re-send the original prompt to
-the next agent from scratch — carry the progress over:
+A unit is **not finished** when any of these happen — treat all three the same:
+- the agent **hit its limit / quota** partway through,
+- the **context/output has grown large** (long session, near the length ceiling),
+- the agent **refused or said it's too hard** (your judgement from reading its
+  output — do not rely on keyword matching, and per "Definition of done" below,
+  "too hard" is never an acceptable end state).
 
-1. Capture that agent's full output (its "chat" — what it did and said). With
-   `orchestra run --json` the transcript is `.attempts[-1].stdout`.
-2. Compact it into a continuation prompt via a worker (opencode):
+In every case, do NOT re-send the original prompt from scratch — carry the
+progress over:
+
+1. Capture that agent's full output (its "chat"). With `orchestra run --json`
+   the transcript is `.attempts[-1].stdout`.
+2. Compact it into a continuation prompt via a worker (keeps YOUR context small):
    ```bash
    echo "<that agent's transcript>" | \
      orchestra compact --task "<original task>" --with opencode
    ```
-   Output = a self-contained prompt stating what's done, what remains, key
-   files/decisions, and the next steps.
-3. Continue with a **different** agent using that prompt:
+   Output = a self-contained prompt: what's done, what remains, key
+   files/decisions, next steps.
+3. Continue with a **different, fresh** agent using that prompt:
    ```bash
-   orchestra run --prefer codex --capability coding "<continuation prompt>"
+   orchestra run --prefer mimo --capability coding "<continuation prompt>"
    ```
-4. Repeat until QC passes. Each handoff moves the work forward, never resets it.
+4. Repeat until QC passes. Each handoff moves the work forward and lands on a
+   fresh limit, never resets and never drains a single agent.
 
 ## Definition of done — drive it to closure
 
