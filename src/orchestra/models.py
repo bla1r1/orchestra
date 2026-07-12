@@ -55,6 +55,7 @@ class AgentSpec:
     env: dict[str, str] = field(default_factory=dict)
     cwd: str | None = None
     enabled: bool = True
+    manual: bool = False  # excluded from auto-routing/rotation; only via chain or --prefer
 
     def handles(self, needed: frozenset[Capability]) -> bool:
         return self.enabled and needed <= self.capabilities

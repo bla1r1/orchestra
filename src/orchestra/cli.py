@@ -122,8 +122,9 @@ async def _cmd_agents(args: argparse.Namespace, root: Path) -> int:
         state = f"cooldown {cd:.0f}s" if cd else ("enabled" if spec.enabled else "disabled")
         last = usage.get(spec.name)
         used = f"used {now - last:.0f}s ago" if last else "unused"
+        tag = " manual" if spec.manual else ""
         caps = ",".join(sorted(c.value for c in spec.capabilities))
-        print(f"{spec.name:<14} prio={spec.priority:<4} [{state}] {used:<16} {caps}")
+        print(f"{spec.name:<14} prio={spec.priority:<4} [{state}{tag}] {used:<16} {caps}")
     return 0
 
 

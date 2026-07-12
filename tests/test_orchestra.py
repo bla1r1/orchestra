@@ -131,6 +131,27 @@ def test_spread_off_follows_priority(config_root, tmp_path):
     assert order == ["limited", "broken", "good"]  # pure priority
 
 
+def test_manual_agent_excluded_from_auto_routing(tmp_path):
+    from orchestra.config import bundled_config_root, load_config
+    from orchestra.router import Router, RouteRequest
+    from orchestra.state import CooldownStore, UsageStore
+
+    cfg = load_config(bundled_config_root())  # shipped config: claude is manual
+    router = Router(cfg, CooldownStore(tmp_path / "c.json"), UsageStore(tmp_path / "u.json"))
+
+    auto = [a.name for a in router.resolve(RouteRequest(frozenset({Capability.coding})))[0]]
+    assert "claude" not in auto                       # never auto-routed / rotated
+    assert auto                                        # but other agents still route
+
+    forced = [a.name for a in router.resolve(
+        RouteRequest(frozenset({Capability.coding}), prefer="claude"))[0]]
+    assert forced[0] == "claude"                       # --prefer still works
+
+    chained = [a.name for a in router.resolve(
+        RouteRequest(frozenset(), task_type="security_review"))[0]]
+    assert "claude" in chained                         # explicit chain still works
+
+
 def test_build_handoff_prompt():
     from orchestra.cli import build_handoff_prompt
     p = build_handoff_prompt("build a parser", "wrote lexer, tokenizer half done")

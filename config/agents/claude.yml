@@ -10,6 +10,9 @@ name: claude
 command: ["claude", "-p", "{prompt}"]
 capabilities: [coding, review, reasoning, architecture, documentation, planning, refactoring, testing]
 priority: 90
+# manual: the orchestrator IS Claude, so never auto-route/rotate work back to it.
+# Still usable when explicitly named (e.g. the security_review chain) or --prefer.
+manual: true
 timeout: 900
 update: ["claude", "update"]
 quota_patterns:

@@ -64,10 +64,19 @@ class Router:
                 eligible.append(name)
 
         ordered = self._order(eligible, req.prefer, chain)
+        for name in eligible:  # eligible but held back because it's manual-only
+            if name not in ordered:
+                skipped.append(f"{name}: manual (only via chain or --prefer)")
         return [self._config.agents[n] for n in ordered], skipped
 
     def _order(self, eligible: list[str], prefer: str | None, chain: list[str]) -> list[str]:
-        rest = [n for n in eligible if n != prefer]
+        # manual agents are auto-routed only when explicitly named (chain/prefer)
+        explicit = set(chain) | ({prefer} if prefer else set())
+        routable = [
+            n for n in eligible
+            if n in explicit or not self._config.agents[n].manual
+        ]
+        rest = [n for n in routable if n != prefer]
         spread = self._config.routing.spread and self._usage is not None
         if spread:
             # least-recently-used first; priority then name break ties (and order
@@ -80,5 +89,5 @@ class Router:
                 key=lambda n: (self._config.agents[n].priority, n),
             )
             rest = chain_part + tail
-        head = [prefer] if prefer in eligible else []
+        head = [prefer] if prefer in routable else []
         return head + rest

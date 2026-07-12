@@ -97,6 +97,7 @@ def _load_agent(path: Path, defaults: dict) -> AgentSpec:
         env={str(k): str(v) for k, v in (raw.get("env") or {}).items()},
         cwd=raw.get("cwd"),
         enabled=bool(raw.get("enabled", True)),
+        manual=bool(raw.get("manual", False)),
     )
 
 
