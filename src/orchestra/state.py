@@ -14,25 +14,52 @@ import time
 from pathlib import Path
 
 
+def _read_map(path: Path) -> dict[str, float]:
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _write_map(path: Path, data: dict[str, float]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f)
+        os.replace(tmp, path)  # atomic
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+class UsageStore:
+    """Last-used timestamp per agent, so the router can rotate work across agents
+    (least-recently-used first) instead of draining one agent's limit."""
+
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path)
+
+    def used_at(self, agent: str) -> float:
+        return _read_map(self._path).get(agent, 0.0)
+
+    def mark(self, agent: str, *, now: float | None = None) -> None:
+        data = _read_map(self._path)
+        data[agent] = time.time() if now is None else now
+        _write_map(self._path, data)
+
+    def snapshot(self) -> dict[str, float]:
+        return _read_map(self._path)
+
+
 class CooldownStore:
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
 
     def _read(self) -> dict[str, float]:
-        try:
-            return json.loads(self._path.read_text())
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
+        return _read_map(self._path)
 
     def _write(self, data: dict[str, float]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=self._path.parent, suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w") as f:
-                json.dump(data, f)
-            os.replace(tmp, self._path)  # atomic
-        finally:
-            Path(tmp).unlink(missing_ok=True)
+        _write_map(self._path, data)
 
     def cooling_down(self, agent: str, *, now: float | None = None) -> float:
         """Seconds remaining on cooldown for ``agent`` (0.0 if available)."""

@@ -1,6 +1,15 @@
 """Turn a task (capabilities + optional task-type) into an ordered candidate
-chain. Explicit chain from routing.yml wins; capable agents fill the tail;
-disabled and cooling-down agents drop out."""
+chain.
+
+Ordering, in priority of tie-breakers:
+  1. an explicit `--prefer` agent, if it qualifies;
+  2. then, when routing.spread is on (default), the remaining eligible agents
+     least-recently-used first — so work rotates across all agents and no single
+     subscription's limit gets drained;
+  3. otherwise the task-type's explicit `chain` order, then priority.
+
+Disabled, capability-mismatched, and cooling-down agents drop out with a note.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +17,7 @@ from dataclasses import dataclass
 
 from .config import Config
 from .models import AgentSpec, Capability
-from .state import CooldownStore
+from .state import CooldownStore, UsageStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,9 +28,12 @@ class RouteRequest:
 
 
 class Router:
-    def __init__(self, config: Config, cooldowns: CooldownStore) -> None:
+    def __init__(
+        self, config: Config, cooldowns: CooldownStore, usage: UsageStore | None = None
+    ) -> None:
         self._config = config
         self._cooldowns = cooldowns
+        self._usage = usage
 
     def resolve(self, req: RouteRequest) -> tuple[list[AgentSpec], list[str]]:
         """Return (ordered candidates, skipped-agent notes)."""
@@ -35,33 +47,38 @@ class Router:
             chain = list(tt.chain)
         needed = frozenset(caps)
 
-        ordered: list[str] = []
-        if req.prefer:
-            ordered.append(req.prefer)
-        ordered += [a for a in chain if a not in ordered]
-        # tail: every remaining capable agent, best priority first
-        tail = sorted(
-            (s for s in self._config.agents.values() if s.name not in ordered),
-            key=lambda s: (s.priority, s.name),
-        )
-        ordered += [s.name for s in tail]
-
-        candidates: list[AgentSpec] = []
         skipped: list[str] = []
-        for name in ordered:
-            spec = self._config.agents.get(name)
-            if spec is None:
+        for name in filter(None, [req.prefer, *chain]):
+            if name not in self._config.agents:
                 skipped.append(f"{name}: not configured")
-                continue
+
+        eligible: list[str] = []
+        for name, spec in self._config.agents.items():
             if not spec.enabled:
                 skipped.append(f"{name}: disabled")
-                continue
-            if not spec.handles(needed):
+            elif not spec.handles(needed):
                 skipped.append(f"{name}: lacks {sorted(c.value for c in needed - spec.capabilities)}")
-                continue
-            remaining = self._cooldowns.cooling_down(name)
-            if remaining > 0:
-                skipped.append(f"{name}: cooling down {remaining:.0f}s")
-                continue
-            candidates.append(spec)
-        return candidates, skipped
+            elif (cd := self._cooldowns.cooling_down(name)) > 0:
+                skipped.append(f"{name}: cooling down {cd:.0f}s")
+            else:
+                eligible.append(name)
+
+        ordered = self._order(eligible, req.prefer, chain)
+        return [self._config.agents[n] for n in ordered], skipped
+
+    def _order(self, eligible: list[str], prefer: str | None, chain: list[str]) -> list[str]:
+        rest = [n for n in eligible if n != prefer]
+        spread = self._config.routing.spread and self._usage is not None
+        if spread:
+            # least-recently-used first; priority then name break ties (and order
+            # the never-used, whose used_at is 0.0, by preference).
+            rest.sort(key=lambda n: (self._usage.used_at(n), self._config.agents[n].priority, n))
+        else:
+            chain_part = [n for n in chain if n in rest]
+            tail = sorted(
+                (n for n in rest if n not in chain_part),
+                key=lambda n: (self._config.agents[n].priority, n),
+            )
+            rest = chain_part + tail
+        head = [prefer] if prefer in eligible else []
+        return head + rest

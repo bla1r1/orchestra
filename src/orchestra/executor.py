@@ -11,16 +11,20 @@ from .agent import run_agent, run_maintenance
 from .config import Config
 from .models import AgentSpec, ExecutionResult, Outcome, TaskReport
 from .router import RouteRequest, Router
-from .state import CooldownStore
+from .state import CooldownStore, UsageStore
 
 log = logging.getLogger("orchestra")
 
 
 class Executor:
-    def __init__(self, config: Config, router: Router, cooldowns: CooldownStore) -> None:
+    def __init__(
+        self, config: Config, router: Router, cooldowns: CooldownStore,
+        usage: UsageStore | None = None,
+    ) -> None:
         self._config = config
         self._router = router
         self._cooldowns = cooldowns
+        self._usage = usage
 
     async def run(self, prompt: str, req: RouteRequest, *, model: str | None = None) -> TaskReport:
         candidates, skipped = self._router.resolve(req)
@@ -50,6 +54,8 @@ class Executor:
         return report
 
     async def _try_agent(self, spec: AgentSpec, prompt: str, model: str | None = None) -> ExecutionResult:
+        if self._usage is not None:
+            self._usage.mark(spec.name)  # record for load-spreading rotation
         result: ExecutionResult | None = None
         installed = False
         for attempt in range(1, spec.max_retries + 1):

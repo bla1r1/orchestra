@@ -53,6 +53,7 @@ class TaskType:
 class Routing:
     default_capability: Capability
     task_types: dict[str, TaskType] = field(default_factory=dict)
+    spread: bool = True  # rotate across agents (least-recently-used first)
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,4 +136,8 @@ def _load_routing(path: Path, agents: dict[str, AgentSpec]) -> Routing:
             capabilities=_caps(body.get("capabilities"), f"task {name}"),
             chain=chain,
         )
-    return Routing(default_capability=default_cap, task_types=task_types)
+    return Routing(
+        default_capability=default_cap,
+        task_types=task_types,
+        spread=bool(raw.get("spread", True)),
+    )

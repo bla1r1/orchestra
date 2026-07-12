@@ -93,14 +93,14 @@ Read all outputs, then YOU synthesise/critique — the engine does not auto-pick
 4. Reject and re-delegate with the specific defects named (same agent, or a
    stronger one). Re-run both gates. Accept only when both pass.
 
-## Spread the load — don't drain one agent
+## Spread the load — automatic
 
-Each worker has its own subscription limit. Do NOT funnel every unit to your
-top-priority agent until its quota dies. **Rotate across the capable agents** so
-each does a share and every limit lasts. Check `orchestra agents` for who is
-fresh vs cooling down, and vary `--prefer` per unit to cycle through them
-(codex → mimo → opencode → …). Save the strongest/scarcest agent for the units
-that truly need it; give routine units to whoever is fresh.
+Load spreading is handled by the router, not by you: with `spread: true` (default
+in routing.yml) each `orchestra run` picks the **least-recently-used** eligible
+agent, so work rotates across all agents and no single subscription's limit gets
+drained. Just delegate normally — you do NOT need to hand-pick `--prefer` to
+rotate. Use `--prefer` only to force a specific agent on purpose; check
+`orchestra agents` (shows last-used + cooldown) if you want to see the spread.
 
 ## Handing off an unfinished task (don't restart from zero)
 

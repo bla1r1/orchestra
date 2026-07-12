@@ -27,7 +27,7 @@ from .logging_setup import setup_logging
 from .models import Capability
 from .quality import QualityConfig, scan
 from .router import RouteRequest, Router
-from .state import CooldownStore
+from .state import CooldownStore, UsageStore
 
 
 def _config_root() -> Path:
@@ -41,8 +41,9 @@ def _parse_caps(raw: str) -> frozenset[Capability]:
 def _build(root: Path) -> tuple[Executor, Router]:
     config = load_config(root)
     cooldowns = CooldownStore(root / "state" / "cooldowns.json")
-    router = Router(config, cooldowns)
-    return Executor(config, router, cooldowns), router
+    usage = UsageStore(root / "state" / "usage.json")
+    router = Router(config, cooldowns, usage)
+    return Executor(config, router, cooldowns, usage), router
 
 
 def _report_json(report) -> str:
@@ -110,13 +111,19 @@ async def _cmd_route(args: argparse.Namespace, root: Path) -> int:
 
 
 async def _cmd_agents(args: argparse.Namespace, root: Path) -> int:
+    import time
+
     config = load_config(root)
     cooldowns = CooldownStore(root / "state" / "cooldowns.json").snapshot()
+    usage = UsageStore(root / "state" / "usage.json").snapshot()
+    now = time.time()
     for spec in sorted(config.agents.values(), key=lambda s: (s.priority, s.name)):
         cd = cooldowns.get(spec.name)
         state = f"cooldown {cd:.0f}s" if cd else ("enabled" if spec.enabled else "disabled")
+        last = usage.get(spec.name)
+        used = f"used {now - last:.0f}s ago" if last else "unused"
         caps = ",".join(sorted(c.value for c in spec.capabilities))
-        print(f"{spec.name:<14} prio={spec.priority:<4} [{state}] {caps}")
+        print(f"{spec.name:<14} prio={spec.priority:<4} [{state}] {used:<16} {caps}")
     return 0
 
 

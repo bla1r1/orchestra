@@ -18,6 +18,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 default_capability: coding
 
+# Load spreading: when true (default), among eligible agents the router picks the
+# least-recently-used FIRST, so work rotates across all agents and no single
+# subscription's limit gets drained in one go. Set false to always follow the
+# task-type chain / priority order instead (best-agent-first, may hammer one).
+spread: true
+
 task_types:
   refactoring:        # large refactors -> Codex
     capabilities: [refactoring, coding]

@@ -100,6 +100,37 @@ async def test_run_maintenance_runs_command():
     assert not ok2
 
 
+def test_spread_rotates_least_recently_used(config_root, tmp_path):
+    from orchestra.config import load_config
+    from orchestra.router import Router, RouteRequest
+    from orchestra.state import CooldownStore, UsageStore
+
+    config = load_config(config_root)  # routing spread defaults to true
+    usage = UsageStore(tmp_path / "u.json")
+    router = Router(config, CooldownStore(tmp_path / "c.json"), usage)
+    req = RouteRequest(frozenset({Capability.coding}))
+
+    first = router.resolve(req)[0][0].name
+    usage.mark(first, now=1000.0)          # simulate it just ran
+    order = [a.name for a in router.resolve(req)[0]]
+    assert order[0] != first               # rotated away from the just-used agent
+    assert order[-1] == first              # and it drops to the back
+
+
+def test_spread_off_follows_priority(config_root, tmp_path):
+    from orchestra.config import load_config
+    from orchestra.router import Router, RouteRequest
+    from orchestra.state import CooldownStore, UsageStore
+
+    config = load_config(config_root)
+    object.__setattr__(config.routing, "spread", False)  # frozen dataclass
+    usage = UsageStore(tmp_path / "u.json")
+    usage.mark("good", now=1.0)  # even a just-used top agent stays first when off
+    router = Router(config, CooldownStore(tmp_path / "c.json"), usage)
+    order = [a.name for a in router.resolve(RouteRequest(frozenset({Capability.coding})))[0]]
+    assert order == ["limited", "broken", "good"]  # pure priority
+
+
 def test_build_handoff_prompt():
     from orchestra.cli import build_handoff_prompt
     p = build_handoff_prompt("build a parser", "wrote lexer, tokenizer half done")
