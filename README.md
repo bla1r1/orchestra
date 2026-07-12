@@ -53,6 +53,7 @@ orchestra run --capability coding,review "Review auth/token.py"
 orchestra run --prefer mimo --model xiaomi/mimo-v2.5-pro "…"  # override the model
 orchestra parallel --agents codex,mimo,opencode "Design a rate limiter"
 orchestra route --task-type refactoring       # dry-run routing, no quota spent
+orchestra qc $(git diff --name-only)          # QC gate: flag stubs/hacks, exit 1
 orchestra agents      # list agents + cooldown state
 orchestra health      # probe every agent binary
 orchestra update      # run each agent's update command
@@ -98,6 +99,21 @@ config/             agents/*.yml, routing.yml, limits.yml
 skills/orchestrate/ Claude Code skill (the PM/router persona)
 tests/              subprocess-backed behavioural tests
 ```
+
+## Quality control
+
+A worker doesn't grade its own homework. Two gates before the orchestrator
+accepts delegated code:
+
+- **Objective scan** — `orchestra qc <files>` flags stub/placeholder/hack markers
+  (`TODO`, `NotImplementedError`, "for simplicity", "in a real implementation",
+  bare `...` bodies, …) and exits 1 if any are found. Patterns are config, not
+  code — edit `config/quality.yml`. Point it at the worker's changes:
+  `orchestra qc $(git diff --name-only)`.
+- **LLM review** — Claude (the orchestrator) reads the actual diff against a hard
+  bar: no stubs, full implementation, no hacks, real error handling, tests where
+  logic is non-trivial. Fail → reject and re-delegate with the defects named,
+  then re-run QC. This loop is baked into the skill.
 
 ## Verified against real CLIs
 

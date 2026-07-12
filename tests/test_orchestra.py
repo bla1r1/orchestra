@@ -96,6 +96,24 @@ async def test_run_maintenance_runs_command():
     assert not ok2
 
 
+def test_qc_scan_flags_stubs_and_passes_clean(tmp_path):
+    from orchestra.quality import QualityConfig, scan
+    cfg = QualityConfig.load(tmp_path)  # no quality.yml -> built-in defaults
+    bad = tmp_path / "impl.py"
+    bad.write_text("def pay():\n    raise NotImplementedError  # TODO later\n")
+    good = tmp_path / "ok.py"
+    good.write_text("def add(a, b):\n    return a + b\n")
+
+    findings = scan([bad, good], cfg)
+    hit_files = {f.file for f in findings}
+    assert str(bad) in hit_files          # stub caught
+    assert str(good) not in hit_files     # clean code passes
+
+    # excludes: a test file with TODO must not trip QC
+    (tmp_path / "test_x.py").write_text("# TODO: nothing\n")
+    assert not [f for f in scan([tmp_path], cfg) if "test_x.py" in f.file]
+
+
 async def test_no_eligible_agent_reports_cleanly(executor: Executor):
     report = await executor.run("x", RouteRequest(frozenset({Capability.reasoning})))
     assert not report.succeeded

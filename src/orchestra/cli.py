@@ -25,6 +25,7 @@ from .config import load_config
 from .executor import Executor
 from .logging_setup import setup_logging
 from .models import Capability
+from .quality import QualityConfig, scan
 from .router import RouteRequest, Router
 from .state import CooldownStore
 
@@ -142,6 +143,22 @@ async def _cmd_maint(args: argparse.Namespace, root: Path, field: str) -> int:
     return rc
 
 
+async def _cmd_qc(args: argparse.Namespace, root: Path) -> int:
+    """Quality-control scan: flag stubs/placeholders/hacks in a worker's output.
+    Exit 1 if any are found so the orchestrator can reject and re-delegate."""
+    cfg = QualityConfig.load(root)
+    findings = scan(args.paths, cfg)
+    if args.json:
+        print(json.dumps([f.__dict__ for f in findings], indent=2))
+    elif findings:
+        print(f"QC FAILED — {len(findings)} incomplete/hack marker(s):", file=sys.stderr)
+        for f in findings:
+            print(f"  {f.file}:{f.line}: {f.text}", file=sys.stderr)
+    else:
+        print("QC passed — no stub/placeholder/hack markers found")
+    return 1 if findings else 0
+
+
 async def _cmd_health(args: argparse.Namespace, root: Path) -> int:
     config = load_config(root)
     checks = await asyncio.gather(*(healthcheck(s) for s in config.agents.values()))
@@ -182,6 +199,11 @@ def _parser() -> argparse.ArgumentParser:
 
     hc = sub.add_parser("health", help="probe agent binaries")
     hc.set_defaults(func=_cmd_health)
+
+    qc = sub.add_parser("qc", help="quality-control scan for stubs/hacks (exit 1 if found)")
+    qc.add_argument("paths", nargs="+", help="files or directories to scan")
+    qc.add_argument("--json", action="store_true")
+    qc.set_defaults(func=_cmd_qc)
 
     ins = sub.add_parser("install", help="run agents' install commands")
     ins.add_argument("--agents", default=None, help="comma-separated (default: all)")

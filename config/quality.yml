@@ -1,0 +1,37 @@
+# Quality-control scan. `orchestra qc <paths>` flags these as incomplete-work or
+# hack smells so a worker's output can't sneak in stubs/placeholders. Objective,
+# quota-free — it runs BEFORE (and complements) the orchestrator's LLM review.
+# Regex, case-insensitive. Add or remove freely — no code change.
+stub_markers:
+  - "TODO"
+  - "FIXME"
+  - "XXX"
+  - "HACK"
+  - "\\bstub\\b"
+  - "not[ _-]?implemented"
+  - "unimplemented"
+  - "NotImplementedError"
+  - "raise NotImplementedError"
+  - "throw new Error\\(['\"]not implemented"
+  - "placeholder"
+  - "your code here"
+  - "implement (me|this)"
+  - "in a real (app|implementation|world)"   # classic LLM cop-out phrasing
+  - "for simplicity"                          # "skipping X for simplicity"
+  - "would (normally|actually)"               # "we would actually validate here"
+  - "^\\s*\\.\\.\\.\\s*$"                     # bare ellipsis function body
+  - "pass\\s+#.*(stub|placeholder|later|implement)"
+
+# Glob suffixes to skip (tests legitimately contain 'stub'/'TODO', docs too).
+exclude:
+  - ".md"
+  - ".txt"
+  - ".lock"
+  - "test_"
+  - "_test."
+  - "/tests/"
+  - "/.venv/"
+  - "/node_modules/"
+  - "__pycache__"
+  - ".pyc"
+  - "/.git/"

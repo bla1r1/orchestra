@@ -80,6 +80,20 @@ Read all outputs, then YOU synthesise/critique — the engine does not auto-pick
 1. Break the request into delegable units and pick a task-type per unit.
 2. Delegate. Pass only the context each unit needs (paths, prior outputs) in the
    prompt — do not dump the whole tree.
-3. Review every returned diff/answer for correctness, security, and fit.
-4. Reject and re-delegate (or fix in-house) anything that fails your bar.
-5. Run `orchestra agents` / `orchestra health` if routing looks off.
+3. **Quality control (mandatory before accepting any worker's code).** A worker
+   is not trusted to grade itself. Two gates:
+   - Objective scan: `orchestra qc <changed files>` (e.g.
+     `orchestra qc $(git diff --name-only)`). Exit 1 = stubs / placeholders /
+     `TODO` / "for simplicity" / "in a real implementation" style cop-outs. If it
+     fails, the work is incomplete — do not accept it.
+   - Your review: read the actual diff against this bar — **no stubs, full
+     implementation (not a sketch), no hacks/крутыли, real error handling on trust
+     boundaries, no dead flexibility, tests where logic is non-trivial.**
+4. Reject and re-delegate with the specific defects called out (send it back to
+   the same agent, or route to a stronger one), or fix small things in-house.
+   Re-run QC on the new output. Only then accept.
+5. Run `orchestra agents` / `orchestra health` / `orchestra route …` if routing
+   looks off.
+
+QC is your job as quality controller — never ship a worker's output you haven't
+put through both gates.
