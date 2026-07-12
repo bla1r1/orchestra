@@ -1,6 +1,21 @@
-# Task-type presets. `chain` sets preferred agent order; the engine appends any
-# other capable, available agent as ultimate fallback. Cooldowns/quota skips are
-# handled automatically at runtime.
+# ─────────────────────────────────────────────────────────────────────────────
+# HOW TO CONFIGURE ROUTING (two knobs, no code):
+#
+#   1. "What agent for what task"  -> edit a task_type's `chain` below.
+#      List agent names in the order you want them tried. The engine appends any
+#      other capable + available agent as ultimate fallback, so you only list
+#      your preferences. Empty chain = pure priority order.
+#
+#   2. "Global preference"         -> edit `priority:` in config/agents/<name>.yml
+#      Lower number = tried earlier. Used for the fallback tail and for tasks
+#      with no explicit chain.
+#
+#   Preview any change WITHOUT spending quota:
+#      orchestra route --task-type refactoring
+#      orchestra route --capability coding,review
+#
+# Cooldowns (quota-exhausted agents) and capability filtering are automatic.
+# ─────────────────────────────────────────────────────────────────────────────
 default_capability: coding
 
 task_types:

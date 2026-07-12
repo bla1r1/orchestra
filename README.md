@@ -9,7 +9,40 @@ timeout, and benches tripped agents with a persistent cooldown.
 ## Install
 
 ```bash
-pip install -e ".[dev]"
+./install.sh
+```
+
+Installs the `orchestra` CLI, links the skill into Claude Code
+(`~/.claude/skills/orchestrate`), and generates an `AGENTS.md` that codex /
+opencode / mimo read — so any of those CLIs can act as the conductor. Re-run
+after `git pull`; it's idempotent. (Bare CLI only: `pip install -e ".[dev]"`.)
+
+## Configure — priority & "what agent for what"
+
+Two knobs, no code, previewable without spending quota:
+
+```bash
+# "what agent for what task": edit the chain for a task type
+$EDITOR config/routing.yml
+
+# "global preference": edit an agent's priority (lower = tried earlier)
+$EDITOR config/agents/codex.yml
+
+# see the effect immediately — who runs, with which model, why others skip:
+orchestra route --task-type refactoring
+orchestra route --capability coding,review
+```
+
+Example `orchestra route` output:
+
+```
+task 'refactoring' would run in order:
+  1. codex     prio=10  (model gpt-5.6-luna)
+  2. opencode  prio=70  (model opencode/deepseek-v4-flash-free)
+  3. claude    prio=90
+skipped:
+  - antigravity: cooling down 20927s
+  - mimo: lacks ['refactoring']
 ```
 
 ## Use
@@ -19,6 +52,7 @@ orchestra run --task-type refactoring "Split the billing module"
 orchestra run --capability coding,review "Review auth/token.py"
 orchestra run --prefer mimo --model xiaomi/mimo-v2.5-pro "…"  # override the model
 orchestra parallel --agents codex,mimo,opencode "Design a rate limiter"
+orchestra route --task-type refactoring       # dry-run routing, no quota spent
 orchestra agents      # list agents + cooldown state
 orchestra health      # probe every agent binary
 orchestra update      # run each agent's update command

@@ -84,6 +84,30 @@ async def _cmd_parallel(args: argparse.Namespace, root: Path) -> int:
     return 0 if any(r.ok for r in results) else 1
 
 
+async def _cmd_route(args: argparse.Namespace, root: Path) -> int:
+    """Dry-run the router: show the chain + why agents were skipped. No execution,
+    no quota spent — use it to check the effect of routing.yml / priority edits."""
+    _, router = _build(root)
+    req = RouteRequest(
+        capabilities=_parse_caps(args.capability),
+        task_type=args.task_type,
+        prefer=args.prefer,
+    )
+    candidates, skipped = router.resolve(req)
+    label = args.task_type or args.capability
+    print(f"task '{label}' would run in order:")
+    for i, spec in enumerate(candidates, 1):
+        model = f"  (model {spec.model})" if spec.model else ""
+        print(f"  {i}. {spec.name}  prio={spec.priority}{model}")
+    if not candidates:
+        print("  (no eligible agent)")
+    if skipped:
+        print("skipped:")
+        for note in skipped:
+            print(f"  - {note}")
+    return 0
+
+
 async def _cmd_agents(args: argparse.Namespace, root: Path) -> int:
     config = load_config(root)
     cooldowns = CooldownStore(root / "state" / "cooldowns.json").snapshot()
@@ -149,6 +173,12 @@ def _parser() -> argparse.ArgumentParser:
 
     ag = sub.add_parser("agents", help="list configured agents")
     ag.set_defaults(func=_cmd_agents)
+
+    rt = sub.add_parser("route", help="dry-run routing (no execution, no quota)")
+    rt.add_argument("--capability", default="coding", help="comma-separated")
+    rt.add_argument("--task-type", default=None)
+    rt.add_argument("--prefer", default=None)
+    rt.set_defaults(func=_cmd_route)
 
     hc = sub.add_parser("health", help="probe agent binaries")
     hc.set_defaults(func=_cmd_health)
