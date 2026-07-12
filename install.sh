@@ -23,7 +23,20 @@ mkdir -p "$HOME/.claude/skills"
 ln -sfn "$REPO/skills/orchestrate" "$HOME/.claude/skills/orchestrate"
 echo "✓ Claude skill    ~/.claude/skills/orchestrate"
 
-# 2b. SessionStart hook so Claude Code activates the skill from message one.
+# 2b. Reliable activation: a pointer in ~/.claude/CLAUDE.md, which loads every
+#     session with no approval needed (more dependable than a hook). Idempotent.
+CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+if ! grep -q "skills/orchestrate" "$CLAUDE_MD" 2>/dev/null; then
+    mkdir -p "$HOME/.claude"
+    cat >> "$CLAUDE_MD" <<'MD'
+
+# orchestra
+- **orchestrate** (`~/.claude/skills/orchestrate/SKILL.md`) - delegate coding/refactoring/review/bug/docs work to subscription worker CLIs with routing, fallback, load-spreading and QC; act as orchestrator (delegate + control) rather than implementing large tasks yourself. CLI: `orchestra`. Trigger: `/orchestrate`, or any substantial coding task worth delegating.
+MD
+    echo "✓ CLAUDE.md       pointer added (loads every session)"
+fi
+
+# 2c. SessionStart hook too (belt & suspenders; may need review in the app to run).
 chmod +x "$REPO/hooks/orchestra-session-start.sh"
 python3 "$REPO/hooks/install-claude-hook.py"
 
