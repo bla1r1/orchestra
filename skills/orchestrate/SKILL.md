@@ -93,6 +93,28 @@ Read all outputs, then YOU synthesise/critique — the engine does not auto-pick
 4. Reject and re-delegate with the specific defects named (same agent, or a
    stronger one). Re-run both gates. Accept only when both pass.
 
+## Handing off an unfinished task (don't restart from zero)
+
+Normal path: delegate a unit to one agent, it finishes, you QC it, you move to
+the next unit. But if an agent **runs out mid-task** (hits its length/quota limit,
+stops half-done, or leaves it incomplete), do NOT re-send the original prompt to
+the next agent from scratch — carry the progress over:
+
+1. Capture that agent's full output (its "chat" — what it did and said). With
+   `orchestra run --json` the transcript is `.attempts[-1].stdout`.
+2. Compact it into a continuation prompt via a worker (opencode):
+   ```bash
+   echo "<that agent's transcript>" | \
+     orchestra compact --task "<original task>" --with opencode
+   ```
+   Output = a self-contained prompt stating what's done, what remains, key
+   files/decisions, and the next steps.
+3. Continue with a **different** agent using that prompt:
+   ```bash
+   orchestra run --prefer codex --capability coding "<continuation prompt>"
+   ```
+4. Repeat until QC passes. Each handoff moves the work forward, never resets it.
+
 ## Definition of done — drive it to closure
 
 You are the closer. The task is done only when it is **actually implemented and

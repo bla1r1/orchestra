@@ -100,6 +100,16 @@ async def test_run_maintenance_runs_command():
     assert not ok2
 
 
+def test_build_handoff_prompt():
+    from orchestra.cli import build_handoff_prompt
+    p = build_handoff_prompt("build a parser", "wrote lexer, tokenizer half done")
+    assert "CONTINUATION PROMPT" in p
+    assert "build a parser" in p          # original task carried
+    assert "tokenizer half done" in p     # transcript carried
+    # task is optional
+    assert "ORIGINAL TASK" not in build_handoff_prompt(None, "x")
+
+
 def test_config_resolution_order(tmp_path, monkeypatch):
     from orchestra.config import default_config_root
     # 1. explicit env wins

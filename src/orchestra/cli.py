@@ -143,6 +143,39 @@ async def _cmd_maint(args: argparse.Namespace, root: Path, field: str) -> int:
     return rc
 
 
+def build_handoff_prompt(task: str | None, transcript: str) -> str:
+    """Instruction that turns an unfinished worker's transcript into a compact
+    continuation prompt a fresh agent can pick up from."""
+    task_line = f"ORIGINAL TASK:\n{task}\n\n" if task else ""
+    return (
+        "Another AI worked on a task but did NOT finish it. Below is the full "
+        "transcript of its session. Compact it into a short CONTINUATION PROMPT "
+        "that a different, fresh AI can act on to COMPLETE the task. The prompt "
+        "must state: (1) what is already done, (2) what still remains, (3) key "
+        "files, decisions and constraints, (4) the exact next steps. Be concise "
+        "and self-contained. Output ONLY the continuation prompt, nothing else.\n\n"
+        f"{task_line}TRANSCRIPT:\n{transcript}"
+    )
+
+
+async def _cmd_compact(args: argparse.Namespace, root: Path) -> int:
+    """Hand off an unfinished task: feed a worker's transcript to a compactor
+    agent (opencode by default) and print a continuation prompt for the next AI."""
+    transcript = Path(args.file).read_text() if args.file else sys.stdin.read()
+    if not transcript.strip():
+        print("compact: empty transcript (pass --file or pipe on stdin)", file=sys.stderr)
+        return 1
+    executor, _ = _build(root)
+    req = RouteRequest(capabilities=frozenset({Capability.documentation}), prefer=args.with_agent)
+    report = await executor.run(build_handoff_prompt(args.task, transcript), req)
+    if report.succeeded:
+        sys.stdout.write(report.final.stdout)
+        return 0
+    for a in report.attempts:
+        print(f"[{a.agent}] {a.outcome.value}: {a.reason or a.stderr[:120]}", file=sys.stderr)
+    return 1
+
+
 async def _cmd_init(args: argparse.Namespace, root: Path) -> int:
     """Copy the bundled config to ~/.config/orchestra so `orchestra` works from
     any directory and the user has an editable copy."""
@@ -240,6 +273,12 @@ def _parser() -> argparse.ArgumentParser:
     qc.add_argument("paths", nargs="+", help="files or directories to scan")
     qc.add_argument("--json", action="store_true")
     qc.set_defaults(func=_cmd_qc)
+
+    cmp = sub.add_parser("compact", help="turn an unfinished worker's transcript into a continuation prompt")
+    cmp.add_argument("--with", dest="with_agent", default="opencode", help="compactor agent (default: opencode)")
+    cmp.add_argument("--task", default=None, help="the original task, for context")
+    cmp.add_argument("--file", default=None, help="transcript file (default: read stdin)")
+    cmp.set_defaults(func=_cmd_compact)
 
     ini = sub.add_parser("init", help="scaffold editable config in ~/.config/orchestra")
     ini.add_argument("--force", action="store_true", help="overwrite an existing config")

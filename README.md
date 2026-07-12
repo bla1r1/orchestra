@@ -68,6 +68,7 @@ orchestra run --prefer mimo --model xiaomi/mimo-v2.5-pro "…"  # override the m
 orchestra parallel --agents codex,mimo,opencode "Design a rate limiter"
 orchestra route --task-type refactoring       # dry-run routing, no quota spent
 orchestra qc $(git diff --name-only)          # QC gate: flag stubs/hacks, exit 1
+echo "$transcript" | orchestra compact --task "…" --with opencode  # handoff prompt
 orchestra agents      # list agents + cooldown state
 orchestra health      # probe every agent binary
 orchestra update      # run each agent's update command
