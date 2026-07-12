@@ -1,0 +1,22 @@
+name: claude
+# Claude Code in non-interactive print mode. Kept as an implementation agent of
+# last resort in fallback chains; the orchestrator is a separate Claude session.
+# VERIFIED syntax on claude 2.1.196. NOTE: a spawned `claude -p` uses the
+# subscription creds from `claude login`; it does NOT inherit the parent Claude
+# Code session's auth. Inside the Claude Desktop app sandbox it returns 401 —
+# run/verify this agent from a normal terminal that has done `claude login`.
+# No default model pinned — uses your Claude Code default. To let --model target
+# it too, add "--model", "{model}" here and set a `model:` value.
+command: ["claude", "-p", "{prompt}"]
+capabilities: [coding, review, reasoning, architecture, documentation, planning, refactoring, testing]
+priority: 90
+timeout: 900
+update: ["claude", "update"]
+quota_patterns:
+  - "usage limit"
+  - "rate limit"
+  - "quota"
+  - "overloaded"
+retryable_patterns:
+  - "connection reset"
+  - "temporarily unavailable"

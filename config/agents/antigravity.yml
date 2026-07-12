@@ -1,0 +1,28 @@
+name: antigravity
+# Antigravity CLI (`agy` 1.1.1). Bug investigation / deep reasoning.
+# VERIFIED: `agy -p "<prompt>"` runs a single prompt non-interactively (like
+# claude). Binary lives in ~/.local/bin which is already on PATH.
+# --dangerously-skip-permissions: never block asking to edit/delete files.
+# --mode accept-edits: auto-apply the edits it makes (non-interactive delegation).
+command: ["agy", "-p", "--dangerously-skip-permissions", "--mode", "accept-edits", "--model", "{model}", "{prompt}"]
+# NOTE: exact --model string is unverified because agy's daily limit is currently
+# exhausted (it errors before running). "Gemini 3.5 Flash" is what `agy models`
+# lists; confirm/adjust once the limit resets.
+model: "Gemini 3.5 Flash"
+# Antigravity 2.0 replaced the Gemini CLI, so it inherits Gemini's routing role:
+# architecture + planning + search on top of its own reasoning/coding strengths.
+capabilities: [reasoning, architecture, planning, coding, testing, search, documentation]
+priority: 20   # preferred over the opencode/mimo forks so it actually gets reached
+timeout: 900
+cooldown_seconds: 21600   # 6h — agy's limit is a daily quota; stop hammering it
+update: ["agy", "update"]
+quota_patterns:
+  - "quota"
+  - "rate limit"
+  - "daily limit"
+  # agy's -p mode prints no granular quota string — this generic line is all it
+  # emits when the limit is exhausted, so we bench it on any hard failure.
+  - "Agent execution terminated due to error"
+retryable_patterns:
+  - "timeout"
+  - "temporarily unavailable"

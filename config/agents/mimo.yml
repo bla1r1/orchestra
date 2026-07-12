@@ -1,0 +1,19 @@
+name: mimo
+# Xiaomi MiMo (mimocode) CLI 0.1.5 — an opencode fork. Fast-draft agent.
+# VERIFIED LIVE: `mimo run "…"` -> answers via the built-in `mimo-auto` model
+# with NO provider login required. Absolute path so no PATH export is needed
+# (installer didn't add ~/.mimocode/bin to the shell rc).
+command: ["/Users/dmytrom/.mimocode/bin/mimo", "run", "-m", "{model}", "{prompt}"]
+model: xiaomi/mimo-v2.5        # the plain 2.5 (not -pro); override with --model
+# `run` is headless/non-interactive — executes tools without asking permission.
+capabilities: [coding, documentation, reasoning]
+priority: 60
+timeout: 300
+update: ["/Users/dmytrom/.mimocode/bin/mimo", "upgrade"]
+quota_patterns:
+  - "quota"
+  - "rate limit"
+  - "too many requests"
+retryable_patterns:
+  - "timeout"
+  - "connection refused"

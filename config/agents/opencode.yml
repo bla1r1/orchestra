@@ -1,0 +1,19 @@
+name: opencode
+# OpenCode CLI 1.17.18. Strong for JVM/Java implementation work.
+# VERIFIED: `opencode run [message..]`. Absolute path so no PATH export is needed
+# (installer didn't add ~/.opencode/bin to the shell rc).
+command: ["/Users/dmytrom/.opencode/bin/opencode", "run", "-m", "{model}", "{prompt}"]
+model: opencode/deepseek-v4-flash-free   # override with --model (provider/model)
+# `run` is headless/non-interactive — it executes tools (edits, deletes) without
+# prompting, so nothing to auto-approve here.
+capabilities: [coding, refactoring, testing, documentation]
+priority: 70   # last implementation agent before the in-house claude fallback
+timeout: 900
+update: ["/Users/dmytrom/.opencode/bin/opencode", "upgrade"]
+quota_patterns:
+  - "quota"
+  - "rate limit"
+  - "429"
+retryable_patterns:
+  - "timeout"
+  - "ECONNRESET"

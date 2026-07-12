@@ -1,0 +1,6 @@
+# Defaults merged into every agent spec unless the agent overrides them.
+defaults:
+  timeout: 600          # seconds per execution
+  cooldown_seconds: 900 # how long a quota-tripped agent stays benched
+  max_retries: 1        # retries against the SAME agent for transient failures
+  priority: 100

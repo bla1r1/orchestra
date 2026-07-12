@@ -1,0 +1,37 @@
+# Task-type presets. `chain` sets preferred agent order; the engine appends any
+# other capable, available agent as ultimate fallback. Cooldowns/quota skips are
+# handled automatically at runtime.
+default_capability: coding
+
+task_types:
+  refactoring:        # large refactors -> Codex
+    capabilities: [refactoring, coding]
+    chain: [codex, opencode, claude]
+
+  java:               # JVM implementation -> OpenCode
+    capabilities: [coding]
+    chain: [opencode, codex, claude]
+
+  architecture:       # design alternatives -> Antigravity (replaced Gemini)
+    capabilities: [architecture, reasoning]
+    chain: [antigravity, claude]
+
+  draft:              # fast first pass -> MiMo
+    capabilities: [coding]
+    chain: [mimo, codex]
+
+  security_review:    # kept in-house -> Claude
+    capabilities: [review]
+    chain: [claude]
+
+  bug:                # investigation -> Antigravity
+    capabilities: [reasoning, coding]
+    chain: [antigravity, codex]
+
+  documentation:      # whoever is up
+    capabilities: [documentation]
+    chain: []
+
+  planning:
+    capabilities: [planning]
+    chain: [antigravity, claude]
