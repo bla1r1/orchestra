@@ -147,9 +147,10 @@ def test_manual_agent_excluded_from_auto_routing(tmp_path):
         RouteRequest(frozenset({Capability.coding}), prefer="claude"))[0]]
     assert forced[0] == "claude"                       # --prefer still works
 
-    chained = [a.name for a in router.resolve(
+    # security_review is strict: ONLY claude, no rotation, no fallback
+    sec = [a.name for a in router.resolve(
         RouteRequest(frozenset(), task_type="security_review"))[0]]
-    assert "claude" in chained                         # explicit chain still works
+    assert sec == ["claude"]
 
 
 def test_build_handoff_prompt():

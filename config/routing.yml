@@ -27,15 +27,15 @@ spread: true
 task_types:
   refactoring:        # large refactors -> Codex
     capabilities: [refactoring, coding]
-    chain: [codex, opencode, claude]
+    chain: [codex, opencode]
 
   java:               # JVM implementation -> OpenCode
     capabilities: [coding]
-    chain: [opencode, codex, claude]
+    chain: [opencode, codex]
 
   architecture:       # design alternatives -> Antigravity (replaced Gemini)
     capabilities: [architecture, reasoning]
-    chain: [antigravity, claude]
+    chain: [antigravity]
 
   draft:              # fast first pass -> MiMo
     capabilities: [coding]
@@ -43,11 +43,12 @@ task_types:
 
   review:             # quality control of a worker's output -> MiMo
     capabilities: [review]
-    chain: [mimo, codex, claude]
+    chain: [mimo, codex]
 
-  security_review:    # security specifically stays in-house -> Claude
+  security_review:    # security stays in-house -> Claude ONLY, by design
     capabilities: [review]
     chain: [claude]
+    strict: true      # no rotation, no fallback to other agents
 
   bug:                # investigation -> Antigravity
     capabilities: [reasoning, coding]
@@ -59,4 +60,4 @@ task_types:
 
   planning:           # delegated to a worker (opencode) — orchestrator only reviews
     capabilities: [planning]
-    chain: [antigravity, opencode, claude]
+    chain: [antigravity, opencode]

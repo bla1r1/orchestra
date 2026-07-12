@@ -39,12 +39,14 @@ class Router:
         """Return (ordered candidates, skipped-agent notes)."""
         caps = set(req.capabilities)
         chain: list[str] = []
+        strict = False
         if req.task_type:
             tt = self._config.routing.task_types.get(req.task_type)
             if tt is None:
                 raise KeyError(f"unknown task_type {req.task_type!r}")
             caps |= set(tt.capabilities)
             chain = list(tt.chain)
+            strict = tt.strict
         needed = frozenset(caps)
 
         skipped: list[str] = []
@@ -63,13 +65,22 @@ class Router:
             else:
                 eligible.append(name)
 
-        ordered = self._order(eligible, req.prefer, chain)
-        for name in eligible:  # eligible but held back because it's manual-only
+        ordered = self._order(eligible, req.prefer, chain, strict)
+        held = "restricted to this task's chain" if strict else "manual (only via chain or --prefer)"
+        for name in eligible:  # eligible but held back from this task
             if name not in ordered:
-                skipped.append(f"{name}: manual (only via chain or --prefer)")
+                skipped.append(f"{name}: {held}")
         return [self._config.agents[n] for n in ordered], skipped
 
-    def _order(self, eligible: list[str], prefer: str | None, chain: list[str]) -> list[str]:
+    def _order(self, eligible: list[str], prefer: str | None, chain: list[str], strict: bool) -> list[str]:
+        if strict:
+            # locked to the chain: only its (eligible) members, in chain order,
+            # no tail, no rotation. --prefer just moves a chain member to the front.
+            pool = [n for n in chain if n in eligible]
+            if prefer in pool:
+                pool = [prefer] + [n for n in pool if n != prefer]
+            return pool
+
         # manual agents are auto-routed only when explicitly named (chain/prefer)
         explicit = set(chain) | ({prefer} if prefer else set())
         routable = [

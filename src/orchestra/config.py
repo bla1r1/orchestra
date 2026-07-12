@@ -47,6 +47,7 @@ class TaskType:
     name: str
     capabilities: frozenset[Capability]
     chain: tuple[str, ...] = ()  # explicit agent order; remaining capable agents appended
+    strict: bool = False         # if true, ONLY the chain runs — no tail, no rotation
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +137,7 @@ def _load_routing(path: Path, agents: dict[str, AgentSpec]) -> Routing:
             name=name,
             capabilities=_caps(body.get("capabilities"), f"task {name}"),
             chain=chain,
+            strict=bool(body.get("strict", False)),
         )
     return Routing(
         default_capability=default_cap,
