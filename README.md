@@ -18,6 +18,11 @@ the skill into Claude Code (`~/.claude/skills/orchestrate`), and generates an
 `AGENTS.md` that codex / opencode / mimo read — so any of those CLIs can act as
 the conductor. Re-run after `git pull`; it's idempotent.
 
+It also registers a **SessionStart hook** in `~/.claude/settings.json` so Claude
+Code activates the orchestrate skill from the first message of every session
+(idempotent, preserves your other hooks). Remove it with:
+`python3 hooks/install-claude-hook.py --remove`.
+
 After install, `orchestra` works from any directory (config resolution:
 `$ORCHESTRA_CONFIG` → `~/.config/orchestra` → the bundled defaults):
 

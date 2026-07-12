@@ -23,6 +23,10 @@ mkdir -p "$HOME/.claude/skills"
 ln -sfn "$REPO/skills/orchestrate" "$HOME/.claude/skills/orchestrate"
 echo "✓ Claude skill    ~/.claude/skills/orchestrate"
 
+# 2b. SessionStart hook so Claude Code activates the skill from message one.
+chmod +x "$REPO/hooks/orchestra-session-start.sh"
+python3 "$REPO/hooks/install-claude-hook.py"
+
 # 3. AGENTS.md for the other CLIs — generated from SKILL.md (frontmatter stripped),
 #    single source of truth. codex/opencode/mimo read AGENTS.md from cwd or home.
 awk 'BEGIN{f=0} /^---$/{f++; next} f>=2{print}' \
