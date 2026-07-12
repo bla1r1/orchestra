@@ -5,14 +5,22 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
-# 1. the CLI (editable, so pulls take effect without reinstall). This puts the
-#    global `orchestra` command on PATH via the console-script entry point.
-#    Prefer pipx for an isolated global install; fall back to pip.
+# 1. the global `orchestra` command. System pythons are often externally managed
+#    (PEP 668), so: prefer pipx; otherwise install into a repo-local venv and
+#    symlink the console script into ~/.local/bin (which is on PATH).
 if command -v pipx >/dev/null 2>&1; then
     pipx install --force -e "$REPO"
 else
-    pip install -e "$REPO"
+    python3 -m venv "$REPO/.venv" 2>/dev/null || true
+    "$REPO/.venv/bin/pip" install -q -e "$REPO"
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$REPO/.venv/bin/orchestra" "$HOME/.local/bin/orchestra"
+    case ":$PATH:" in
+        *":$HOME/.local/bin:"*) ;;
+        *) echo "⚠ add ~/.local/bin to your PATH: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+    esac
 fi
+command -v orchestra >/dev/null && echo "✓ orchestra CLI   $(command -v orchestra)"
 
 # 1b. editable user config in ~/.config/orchestra so `orchestra` works anywhere
 #     without ORCHESTRA_CONFIG. Idempotent (won't clobber an existing config).
