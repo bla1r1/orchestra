@@ -35,7 +35,11 @@ task_types:
     capabilities: [coding]
     chain: [mimo, codex]
 
-  security_review:    # kept in-house -> Claude
+  review:             # quality control of a worker's output -> MiMo
+    capabilities: [review]
+    chain: [mimo, codex, claude]
+
+  security_review:    # security specifically stays in-house -> Claude
     capabilities: [review]
     chain: [claude]
 

@@ -82,18 +82,34 @@ Read all outputs, then YOU synthesise/critique — the engine does not auto-pick
    prompt — do not dump the whole tree.
 3. **Quality control (mandatory before accepting any worker's code).** A worker
    is not trusted to grade itself. Two gates:
-   - Objective scan: `orchestra qc <changed files>` (e.g.
-     `orchestra qc $(git diff --name-only)`). Exit 1 = stubs / placeholders /
-     `TODO` / "for simplicity" / "in a real implementation" style cop-outs. If it
-     fails, the work is incomplete — do not accept it.
-   - Your review: read the actual diff against this bar — **no stubs, full
-     implementation (not a sketch), no hacks/крутыли, real error handling on trust
-     boundaries, no dead flexibility, tests where logic is non-trivial.**
-4. Reject and re-delegate with the specific defects called out (send it back to
-   the same agent, or route to a stronger one), or fix small things in-house.
-   Re-run QC on the new output. Only then accept.
-5. Run `orchestra agents` / `orchestra health` / `orchestra route …` if routing
-   looks off.
+   - Objective scan (you run this): `orchestra qc $(git diff --name-only)`.
+     Exit 1 = stubs / placeholders / `TODO` / deferrals ("later", "follow-up",
+     "out of scope") / "for simplicity" / "in a real implementation" cop-outs.
+   - Review pass — **delegate the control to MiMo**:
+     `orchestra run --task-type review "Review this diff. FAIL if: any stub or
+     placeholder, partial/sketch implementation, hack/крутыль, missing error
+     handling, or the task was deferred/punted instead of done. <diff>"`
+     Read MiMo's verdict together with the diff yourself.
+4. Reject and re-delegate with the specific defects named (same agent, or a
+   stronger one). Re-run both gates. Accept only when both pass.
 
-QC is your job as quality controller — never ship a worker's output you haven't
-put through both gates.
+## Definition of done — drive it to closure
+
+You are the closer. The task is done only when it is **actually implemented and
+verified**, not when it has been handed off, stubbed, or scheduled for "later".
+
+- **Do not accept deferral.** A worker that responds "this should be done in a
+  follow-up", leaves a `TODO`, or says the piece belongs to another agent has
+  NOT completed the task. That is a QC failure — send it back.
+- **Do not accept "too hard".** Neither from a worker nor from yourself. If an
+  agent stalls or claims difficulty, re-scope into smaller units, switch to a
+  stronger agent (`--prefer`), retry — keep going. "Hard" is not a stopping
+  condition; only a concrete, named blocker (missing credential, missing spec,
+  external outage) is — and then you surface that exact blocker, not a vague
+  "it's complex".
+- **Keep hammering.** Loop delegate → QC → reject → re-delegate until the
+  acceptance bar is met. Every task you were given gets closed or its precise
+  blocker reported. No silent drops, no "mostly done".
+
+Run `orchestra agents` / `orchestra health` / `orchestra route …` if routing
+looks off.

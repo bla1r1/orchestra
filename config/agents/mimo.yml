@@ -6,7 +6,7 @@ name: mimo
 command: ["/Users/dmytrom/.mimocode/bin/mimo", "run", "-m", "{model}", "{prompt}"]
 model: xiaomi/mimo-v2.5        # the plain 2.5 (not -pro); override with --model
 # `run` is headless/non-interactive — executes tools without asking permission.
-capabilities: [coding, documentation, reasoning]
+capabilities: [coding, documentation, reasoning, review]  # runs the QC review pass
 priority: 60
 timeout: 300
 update: ["/Users/dmytrom/.mimocode/bin/mimo", "upgrade"]

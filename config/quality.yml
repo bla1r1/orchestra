@@ -19,6 +19,11 @@ stub_markers:
   - "in a real (app|implementation|world)"   # classic LLM cop-out phrasing
   - "for simplicity"                          # "skipping X for simplicity"
   - "would (normally|actually)"               # "we would actually validate here"
+  - "for now"                                 # deferral: "return None for now"
+  - "later"                                   # "handle this later"
+  - "follow[- ]?up"                           # "in a follow-up"
+  - "out of scope"                            # punting the actual task
+  - "leave (it|this|that) (for|to)"           # passing the work to someone else
   - "^\\s*\\.\\.\\.\\s*$"                     # bare ellipsis function body
   - "pass\\s+#.*(stub|placeholder|later|implement)"
 
