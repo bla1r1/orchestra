@@ -79,9 +79,15 @@ async def run_agent(spec: AgentSpec, prompt: str, model: str | None = None) -> E
     stdout = out_b.decode(errors="replace")
     stderr = err_b.decode(errors="replace")
     outcome = _classify(spec, proc.returncode, f"{stdout}\n{stderr}")
+    reason = ""
+    if outcome is Outcome.success and not stdout.strip():
+        # Guard against "hollow success": a clean exit that produced nothing (a bad
+        # API key, a silent auth failure) is not a real result — fall through.
+        outcome = Outcome.error
+        reason = "exit 0 but empty output — treated as failure"
     return ExecutionResult(
         agent=spec.name, outcome=outcome, exit_code=proc.returncode,
-        stdout=stdout, stderr=stderr, duration=time.monotonic() - start,
+        stdout=stdout, stderr=stderr, duration=time.monotonic() - start, reason=reason,
     )
 
 

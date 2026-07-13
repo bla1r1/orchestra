@@ -92,6 +92,14 @@ async def test_model_default_and_override(tmp_path):
     assert (await run_agent(spec, "p", model="override")).stdout.strip() == "override"
 
 
+async def test_hollow_success_empty_output_is_failure():
+    from orchestra.agent import run_agent
+    # exit 0 but prints nothing (e.g. a silent auth failure) -> not a real success
+    silent = AgentSpec(name="silent", command=("true",), capabilities=frozenset({Capability.coding}))
+    r = await run_agent(silent, "do it")
+    assert r.exit_code == 0 and r.outcome is Outcome.error and "empty output" in r.reason
+
+
 async def test_run_maintenance_runs_command():
     from orchestra.agent import run_maintenance
     ok, out = await run_maintenance(("python3", "-c", "print('installed')"))
